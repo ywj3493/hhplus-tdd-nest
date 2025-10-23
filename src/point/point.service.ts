@@ -25,6 +25,15 @@ export class PointService {
     if (!Number.isInteger(amount)) {
       throw new Error('충전 금액은 정수여야 합니다');
     }
+    if (amount < 1000) {
+      throw new Error('최소 충전 금액은 1,000원입니다');
+    }
+    if (amount % 100 !== 0) {
+      throw new Error('충전 금액은 100원 단위만 가능합니다');
+    }
+    if (amount > 200000) {
+      throw new Error('최대 충전 금액은 200,000원입니다');
+    }
 
     const currentPoint = await this.userPointTable.selectById(userId);
     const newPoint = currentPoint.point + amount;
@@ -54,6 +63,10 @@ export class PointService {
     }
 
     const currentPoint = await this.userPointTable.selectById(userId);
+
+    if (currentPoint.point < 5000) {
+      throw new Error('최소 5,000원 이상 있어야 사용할 수 있습니다');
+    }
 
     if (currentPoint.point < amount) {
       throw new Error('잔액이 부족합니다');

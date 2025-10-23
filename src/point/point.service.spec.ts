@@ -160,8 +160,8 @@ describe('PointService', () => {
       // given: 현재 포인트가 1000원인 사용자
       const userId = 1;
       const currentPoint = 1000;
-      const chargeAmount = 500;
-      const expectedNewPoint = 1500;
+      const chargeAmount = 5000;
+      const expectedNewPoint = 6000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -181,10 +181,10 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 500원을 충전하면
+      // when: 5000원을 충전하면
       const result = await service.chargePoint(userId, chargeAmount);
 
-      // then: 포인트가 1500원이 된다
+      // then: 포인트가 6000원이 된다
       expect(result.point).toBe(expectedNewPoint);
     });
 
@@ -346,7 +346,7 @@ describe('PointService', () => {
     it('200,000원 초과 충전 시도 시 에러가 발생한다', async () => {
       // given: 사용자와 200,000원 초과 충전 금액
       const userId = 10;
-      const invalidAmount = 200001;
+      const invalidAmount = 200100;
 
       // when & then: 200,000원을 초과하여 충전하려고 하면 에러가 발생한다
       await expect(
@@ -449,11 +449,11 @@ describe('PointService', () => {
 
   describe('usePoint', () => {
     it('포인트를 정상적으로 사용한다', async () => {
-      // given: 현재 포인트가 2000원인 사용자
+      // given: 현재 포인트가 10000원인 사용자
       const userId = 1;
-      const currentPoint = 2000;
-      const useAmount = 500;
-      const expectedNewPoint = 1500;
+      const currentPoint = 10000;
+      const useAmount = 2000;
+      const expectedNewPoint = 8000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -473,18 +473,18 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 500원을 사용하면
+      // when: 2000원을 사용하면
       const result = await service.usePoint(userId, useAmount);
 
-      // then: 포인트가 1500원이 된다
+      // then: 포인트가 8000원이 된다
       expect(result.point).toBe(expectedNewPoint);
     });
 
     it('사용 후 새로운 포인트가 반환된다', async () => {
-      // given: 포인트가 1000원인 사용자
+      // given: 포인트가 8000원인 사용자
       const userId = 2;
-      const currentPoint = 1000;
-      const useAmount = 300;
+      const currentPoint = 8000;
+      const useAmount = 3000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -493,7 +493,7 @@ describe('PointService', () => {
       });
       userPointTable.insertOrUpdate.mockResolvedValue({
         id: userId,
-        point: 700,
+        point: 5000,
         updateMillis: Date.now(),
       });
       pointHistoryTable.insert.mockResolvedValue({
@@ -504,13 +504,13 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 300원을 사용하면
+      // when: 3000원을 사용하면
       const result = await service.usePoint(userId, useAmount);
 
       // then: 사용 후 포인트 정보가 반환된다
       expect(result).toMatchObject({
         id: userId,
-        point: 700,
+        point: 5000,
       });
       expect(result.updateMillis).toBeDefined();
     });
@@ -549,16 +549,16 @@ describe('PointService', () => {
     it('PointHistoryTable.insert가 USE 타입으로 호출된다', async () => {
       // given: 사용자와 사용 금액
       const userId = 4;
-      const useAmount = 800;
+      const useAmount = 2000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
-        point: 1500,
+        point: 7000,
         updateMillis: Date.now(),
       });
       userPointTable.insertOrUpdate.mockResolvedValue({
         id: userId,
-        point: 700,
+        point: 5000,
         updateMillis: Date.now(),
       });
       pointHistoryTable.insert.mockResolvedValue({
