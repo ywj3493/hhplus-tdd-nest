@@ -38,7 +38,11 @@ describe('PointController', () => {
     it('userId로 service.getPoint()를 호출한다', async () => {
       // given
       const userId = 1;
-      const mockUserPoint = { id: userId, point: 5000, updateMillis: Date.now() };
+      const mockUserPoint = {
+        id: userId,
+        point: 5000,
+        updateMillis: Date.now(),
+      };
       service.getPoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -52,7 +56,11 @@ describe('PointController', () => {
     it('service에서 반환된 UserPoint를 그대로 반환한다', async () => {
       // given
       const userId = 2;
-      const mockUserPoint = { id: userId, point: 3000, updateMillis: 1234567890 };
+      const mockUserPoint = {
+        id: userId,
+        point: 3000,
+        updateMillis: 1234567890,
+      };
       service.getPoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -66,7 +74,11 @@ describe('PointController', () => {
       // given
       const userIdString = '42';
       const expectedUserId = 42;
-      service.getPoint.mockResolvedValue({ id: expectedUserId, point: 1000, updateMillis: Date.now() });
+      service.getPoint.mockResolvedValue({
+        id: expectedUserId,
+        point: 1000,
+        updateMillis: Date.now(),
+      });
 
       // when
       await controller.point(userIdString);
@@ -81,7 +93,13 @@ describe('PointController', () => {
       // given
       const userId = 1;
       const mockHistories = [
-        { id: 1, userId, type: TransactionType.CHARGE, amount: 1000, timeMillis: Date.now() },
+        {
+          id: 1,
+          userId,
+          type: TransactionType.CHARGE,
+          amount: 1000,
+          timeMillis: Date.now(),
+        },
       ];
       service.getHistories.mockResolvedValue(mockHistories);
 
@@ -97,8 +115,20 @@ describe('PointController', () => {
       // given
       const userId = 2;
       const mockHistories = [
-        { id: 1, userId, type: TransactionType.CHARGE, amount: 1000, timeMillis: 1234567890 },
-        { id: 2, userId, type: TransactionType.USE, amount: 500, timeMillis: 1234567900 },
+        {
+          id: 1,
+          userId,
+          type: TransactionType.CHARGE,
+          amount: 1000,
+          timeMillis: 1234567890,
+        },
+        {
+          id: 2,
+          userId,
+          type: TransactionType.USE,
+          amount: 500,
+          timeMillis: 1234567900,
+        },
       ];
       service.getHistories.mockResolvedValue(mockHistories);
 
@@ -129,7 +159,11 @@ describe('PointController', () => {
       // given
       const userId = 1;
       const amount = 1000;
-      const mockUserPoint = { id: userId, point: 6000, updateMillis: Date.now() };
+      const mockUserPoint = {
+        id: userId,
+        point: 6000,
+        updateMillis: Date.now(),
+      };
       service.chargePoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -144,7 +178,11 @@ describe('PointController', () => {
       // given
       const userId = 2;
       const amount = 2000;
-      const mockUserPoint = { id: userId, point: 7000, updateMillis: 1234567890 };
+      const mockUserPoint = {
+        id: userId,
+        point: 7000,
+        updateMillis: 1234567890,
+      };
       service.chargePoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -158,7 +196,11 @@ describe('PointController', () => {
       // given
       const userId = 3;
       const pointDto = { amount: 5000 };
-      service.chargePoint.mockResolvedValue({ id: userId, point: 10000, updateMillis: Date.now() });
+      service.chargePoint.mockResolvedValue({
+        id: userId,
+        point: 10000,
+        updateMillis: Date.now(),
+      });
 
       // when
       await controller.charge(userId.toString(), pointDto);
@@ -173,7 +215,11 @@ describe('PointController', () => {
       // given
       const userId = 1;
       const amount = 500;
-      const mockUserPoint = { id: userId, point: 4500, updateMillis: Date.now() };
+      const mockUserPoint = {
+        id: userId,
+        point: 4500,
+        updateMillis: Date.now(),
+      };
       service.usePoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -188,7 +234,11 @@ describe('PointController', () => {
       // given
       const userId = 2;
       const amount = 1000;
-      const mockUserPoint = { id: userId, point: 2000, updateMillis: 1234567890 };
+      const mockUserPoint = {
+        id: userId,
+        point: 2000,
+        updateMillis: 1234567890,
+      };
       service.usePoint.mockResolvedValue(mockUserPoint);
 
       // when
@@ -202,7 +252,11 @@ describe('PointController', () => {
       // given
       const userId = 3;
       const pointDto = { amount: 1500 };
-      service.usePoint.mockResolvedValue({ id: userId, point: 3500, updateMillis: Date.now() });
+      service.usePoint.mockResolvedValue({
+        id: userId,
+        point: 3500,
+        updateMillis: Date.now(),
+      });
 
       // when
       await controller.use(userId.toString(), pointDto);
