@@ -294,7 +294,9 @@ describe('PointService', () => {
       const invalidAmount = 0;
 
       // when & then: 0원을 충전하려고 하면 에러가 발생한다
-      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow();
     });
 
     it('음수 금액 충전 시도 시 에러가 발생한다', async () => {
@@ -303,7 +305,9 @@ describe('PointService', () => {
       const invalidAmount = -1000;
 
       // when & then: 음수 금액을 충전하려고 하면 에러가 발생한다
-      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow();
     });
 
     it('소수점 금액 충전 시도 시 에러가 발생한다', async () => {
@@ -312,7 +316,9 @@ describe('PointService', () => {
       const invalidAmount = 100.5;
 
       // when & then: 소수점 금액을 충전하려고 하면 에러가 발생한다
-      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow();
     });
   });
 
