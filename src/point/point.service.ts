@@ -11,6 +11,9 @@ export class PointService {
   private readonly CHARGE_UNIT = 100;
   private readonly MIN_BALANCE_FOR_USE = 5000;
 
+  // 동시성 제어를 위한 사용자별 Promise 큐
+  private readonly userLocks: Map<number, Promise<any>> = new Map();
+
   constructor(
     private readonly userPointTable: UserPointTable,
     private readonly pointHistoryTable: PointHistoryTable,
@@ -25,6 +28,46 @@ export class PointService {
   }
 
   async chargePoint(userId: number, amount: number): Promise<UserPoint> {
+    return this.executeWithLock(userId, () =>
+      this.chargePointInternal(userId, amount),
+    );
+  }
+
+  async usePoint(userId: number, amount: number): Promise<UserPoint> {
+    return this.executeWithLock(userId, () =>
+      this.usePointInternal(userId, amount),
+    );
+  }
+
+  /**
+   * 사용자별 동시성 제어를 위한 락 메커니즘
+   * Promise Queue 방식: 같은 사용자의 요청은 순차 처리, 다른 사용자는 병렬 처리
+   */
+  private async executeWithLock<T>(
+    userId: number,
+    task: () => Promise<T>,
+  ): Promise<T> {
+    const previousTask = this.userLocks.get(userId) || Promise.resolve();
+
+    const currentTask = previousTask
+      .then(() => task())
+      .catch((error) => {
+        throw error;
+      })
+      .finally(() => {
+        if (this.userLocks.get(userId) === currentTask) {
+          this.userLocks.delete(userId);
+        }
+      });
+
+    this.userLocks.set(userId, currentTask);
+    return currentTask;
+  }
+
+  private async chargePointInternal(
+    userId: number,
+    amount: number,
+  ): Promise<UserPoint> {
     this.validateChargeAmount(amount);
 
     const currentPoint = await this.userPointTable.selectById(userId);
@@ -64,7 +107,10 @@ export class PointService {
     }
   }
 
-  async usePoint(userId: number, amount: number): Promise<UserPoint> {
+  private async usePointInternal(
+    userId: number,
+    amount: number,
+  ): Promise<UserPoint> {
     this.validateUseAmount(amount);
 
     const currentPoint = await this.userPointTable.selectById(userId);
