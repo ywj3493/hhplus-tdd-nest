@@ -24,25 +24,30 @@
 
 ## TDD Phases
 ### Red Phase
-- [ ] 실패하는 테스트 작성
-- [ ] 커밋: `test: add failing tests for point history retrieval`
+- [x] 실패하는 테스트 작성
+- [x] 커밋: `test: add failing tests for point history retrieval` (15dfd3a)
 
 ### Green Phase
-- [ ] 최소 구현으로 테스트 통과
-- [ ] 커밋: `feat: implement point history retrieval (minimal)`
+- [x] 최소 구현으로 테스트 통과
+- [x] 커밋: `feat: implement point history retrieval (minimal)` (881f82e)
 
 ### Refactor Phase
-- [ ] 코드 개선 및 리팩토링
-- [ ] 커밋: `refactor: improve point history retrieval implementation`
+- [x] 코드 개선 및 리팩토링
+- [x] 커밋: `refactor: improve point history retrieval implementation` (b423663)
 
 ### Controller Integration
-- [ ] Controller에서 Service 호출하도록 연결
-- [ ] 커밋: `feat: connect point history retrieval to controller`
+- [x] Controller에서 Service 호출하도록 연결
+- [x] 커밋: `feat: connect point history retrieval to controller` (c5c4386)
 
 ## Status
 - [x] Issue Created
-- [ ] Red Phase Complete
-- [ ] Green Phase Complete
-- [ ] Refactor Phase Complete
-- [ ] Controller Integration Complete
-- [ ] Issue Closed
+- [x] Red Phase Complete
+- [x] Green Phase Complete
+- [x] Refactor Phase Complete
+- [x] Controller Integration Complete
+- [x] Issue Closed
+
+## Results
+- 총 4개 커밋 생성 (Red-Green-Refactor + Controller Integration)
+- 3개 단위 테스트 작성 및 통과
+- GET /point/:id/histories 엔드포인트 완성
