@@ -154,4 +154,165 @@ describe('PointService', () => {
       expect(pointHistoryTable.selectAllByUserId).toHaveBeenCalledWith(userId);
     });
   });
+
+  describe('chargePoint', () => {
+    it('포인트를 정상적으로 충전한다', async () => {
+      // given: 현재 포인트가 1000원인 사용자
+      const userId = 1;
+      const currentPoint = 1000;
+      const chargeAmount = 500;
+      const expectedNewPoint = 1500;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: expectedNewPoint,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 1,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 500원을 충전하면
+      const result = await service.chargePoint(userId, chargeAmount);
+
+      // then: 포인트가 1500원이 된다
+      expect(result.point).toBe(expectedNewPoint);
+    });
+
+    it('충전 후 새로운 포인트가 반환된다', async () => {
+      // given: 포인트가 0원인 사용자
+      const userId = 2;
+      const chargeAmount = 1000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: 0,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: chargeAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 2,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 1000원을 충전하면
+      const result = await service.chargePoint(userId, chargeAmount);
+
+      // then: 충전된 포인트 정보가 반환된다
+      expect(result).toMatchObject({
+        id: userId,
+        point: chargeAmount,
+      });
+      expect(result.updateMillis).toBeDefined();
+    });
+
+    it('UserPointTable.insertOrUpdate가 올바른 값으로 호출된다', async () => {
+      // given: 현재 포인트가 2000원인 사용자
+      const userId = 3;
+      const currentPoint = 2000;
+      const chargeAmount = 3000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: 5000,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 3,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 3000원을 충전하면
+      await service.chargePoint(userId, chargeAmount);
+
+      // then: insertOrUpdate가 올바른 새 포인트(5000)로 호출된다
+      expect(userPointTable.insertOrUpdate).toHaveBeenCalledWith(userId, 5000);
+    });
+
+    it('PointHistoryTable.insert가 CHARGE 타입으로 호출된다', async () => {
+      // given: 사용자와 충전 금액
+      const userId = 4;
+      const chargeAmount = 1500;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: 500,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: 2000,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 4,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 포인트를 충전하면
+      await service.chargePoint(userId, chargeAmount);
+
+      // then: PointHistoryTable.insert가 CHARGE(0) 타입으로 호출된다
+      expect(pointHistoryTable.insert).toHaveBeenCalledWith(
+        userId,
+        chargeAmount,
+        0, // TransactionType.CHARGE
+        expect.any(Number),
+      );
+    });
+
+    it('0원 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 0원 충전 금액
+      const userId = 5;
+      const invalidAmount = 0;
+
+      // when & then: 0원을 충전하려고 하면 에러가 발생한다
+      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+    });
+
+    it('음수 금액 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 음수 충전 금액
+      const userId = 6;
+      const invalidAmount = -1000;
+
+      // when & then: 음수 금액을 충전하려고 하면 에러가 발생한다
+      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+    });
+
+    it('소수점 금액 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 소수점이 있는 충전 금액
+      const userId = 7;
+      const invalidAmount = 100.5;
+
+      // when & then: 소수점 금액을 충전하려고 하면 에러가 발생한다
+      await expect(service.chargePoint(userId, invalidAmount)).rejects.toThrow();
+    });
+  });
 });
