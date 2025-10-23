@@ -207,33 +207,103 @@ chore: update jest configuration for coverage reporting
 
 ## 🧪 Testing Strategy
 
+### Test Doubles: Mock vs Stub
+**Understanding the distinction is crucial for writing clear, maintainable tests:**
+
+#### Stub (스텁)
+- **Purpose**: Provides predetermined responses to method calls
+- **Usage**: Use when you need to **provide data** for the test
+- **Verification**: NO verification on stub calls
+- **Comment in code**: `// Stub: Provides predetermined return value`
+
+#### Mock (모의 객체)
+- **Purpose**: Verifies that methods were called with correct parameters
+- **Usage**: Use when you need to **verify behavior**
+- **Verification**: YES - explicitly verify calls with `expect().toHaveBeenCalledWith()`
+- **Comment in code**: `// Mock: Verify this method was called correctly`
+
+**Key Rule**:
+- Use **Stub** when testing return values and data flow
+- Use **Mock** when testing interactions and method calls
+
 ### Unit Tests
 - **Purpose**: Test individual functions/methods in isolation
 - **When**: STEP1 (primary), STEP2 (as needed)
 - **Approach**:
-  - Use Jest mocking extensively (`jest.fn()`, `jest.spyOn()`)
-  - Mock all external dependencies
+  - Use Jest test doubles (`jest.fn()`, `jest.spyOn()`)
+  - Use **Stubs** for providing data
+  - Use **Mocks** for verifying behavior
+  - Clearly annotate which is which in comments
   - Test business logic independently
   - Fast execution, no I/O operations
 - **Location**: `*.spec.ts` files alongside implementation
+
+### Test Code Style
+
+**테스트 코드 작성 규칙:**
+1. **Given-When-Then 패턴** 사용 (주석으로 명시)
+2. **테스트 케이스 설명은 한글로** 작성 (it 문의 description)
+3. **Stub과 Mock을 명확히 구분**하여 주석 작성
+4. **과도한 주석은 지양**, 필요한 부분만 간결하게
 
 **Example:**
 ```typescript
 describe('PointService', () => {
   let service: PointService;
-  let mockUserTable: jest.Mocked<UserPointTable>;
+  let userPointTable: jest.Mocked<UserPointTable>;
+  let pointHistoryTable: jest.Mocked<PointHistoryTable>;
 
-  beforeEach(() => {
-    mockUserTable = {
+  beforeEach(async () => {
+    const mockUserPointTable = {
       selectById: jest.fn(),
       insertOrUpdate: jest.fn(),
-    } as any;
+    };
 
-    service = new PointService(mockUserTable, mockHistoryTable);
+    const mockPointHistoryTable = {
+      insert: jest.fn(),
+      selectAllByUserId: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PointService,
+        { provide: UserPointTable, useValue: mockUserPointTable },
+        { provide: PointHistoryTable, useValue: mockPointHistoryTable },
+      ],
+    }).compile();
+
+    service = module.get<PointService>(PointService);
+    userPointTable = module.get(UserPointTable);
+    pointHistoryTable = module.get(PointHistoryTable);
   });
 
-  it('should charge points correctly', async () => {
-    // Test with mocked dependencies
+  it('포인트를 정상적으로 충전한다', async () => {
+    // given: 현재 포인트 1000원인 사용자
+    userPointTable.selectById.mockResolvedValue({
+      id: 1,
+      point: 1000,
+      updateMillis: Date.now(),
+    });
+    userPointTable.insertOrUpdate.mockResolvedValue({
+      id: 1,
+      point: 2000,
+      updateMillis: Date.now(),
+    });
+
+    // when: 1000원을 충전하면
+    const result = await service.chargePoint(1, 1000);
+
+    // then: 포인트가 2000원이 된다
+    expect(result.point).toBe(2000);
+
+    // then: 테이블 메서드들이 올바르게 호출된다
+    expect(userPointTable.insertOrUpdate).toHaveBeenCalledWith(1, 2000);
+    expect(pointHistoryTable.insert).toHaveBeenCalledWith(
+      1,
+      1000,
+      TransactionType.CHARGE,
+      expect.any(Number),
+    );
   });
 });
 ```
