@@ -32,25 +32,31 @@
 
 ## TDD Phases
 ### Red Phase
-- [ ] 실패하는 테스트 작성
-- [ ] 커밋: `test: add failing tests for point use`
+- [x] 실패하는 테스트 작성
+- [x] 커밋: `test: add failing tests for point use` (70ff979)
 
 ### Green Phase
-- [ ] 최소 구현으로 테스트 통과
-- [ ] 커밋: `feat: implement point use (minimal)`
+- [x] 최소 구현으로 테스트 통과
+- [x] 커밋: `feat: implement point use (minimal)` (ba09257)
 
 ### Refactor Phase
-- [ ] 코드 개선 및 리팩토링
-- [ ] 커밋: `refactor: improve point use implementation`
+- [x] 코드 개선 및 리팩토링
+- [x] 커밋: `refactor: improve point use implementation` (10014ee)
 
 ### Controller Integration
-- [ ] Controller에서 Service 호출하도록 연결
-- [ ] 커밋: `feat: connect point use to controller`
+- [x] Controller에서 Service 호출하도록 연결
+- [x] 커밋: `feat: connect point use to controller` (5f68aa3)
 
 ## Status
 - [x] Issue Created
-- [ ] Red Phase Complete
-- [ ] Green Phase Complete
-- [ ] Refactor Phase Complete
-- [ ] Controller Integration Complete
-- [ ] Issue Closed
+- [x] Red Phase Complete
+- [x] Green Phase Complete
+- [x] Refactor Phase Complete
+- [x] Controller Integration Complete
+- [x] Issue Closed
+
+## Results
+- 총 4개 커밋 생성 (Red-Green-Refactor + Controller Integration)
+- 8개 단위 테스트 작성 및 통과 (포인트 사용, 검증 포함)
+- PATCH /point/:id/use 엔드포인트 완성
+- 금액 검증 로직 구현 (0 이하, 소수점, 잔액 부족 체크)
