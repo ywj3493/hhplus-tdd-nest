@@ -23,11 +23,30 @@ describe('Point Integration Tests', () => {
     pointHistoryTable = module.get<PointHistoryTable>(PointHistoryTable);
   });
 
+  // Helper: 사용자 포인트 초기화
+  const setupUserPoint = async (
+    userId: number,
+    initialPoint: number,
+  ): Promise<void> => {
+    await userPointTable.insertOrUpdate(userId, initialPoint);
+  };
+
+  // Helper: 최종 포인트 조회
+  const getFinalPoint = async (userId: number): Promise<number> => {
+    const userPoint = await userPointTable.selectById(userId);
+    return userPoint.point;
+  };
+
+  // Helper: 거래 내역 조회
+  const getHistories = async (userId: number) => {
+    return await pointHistoryTable.selectAllByUserId(userId);
+  };
+
   describe('GET /point/:id - 포인트 조회', () => {
     it('존재하는 사용자의 포인트 조회가 정상 작동한다', async () => {
       // given: 10,000원을 가진 사용자
       const userId = 1;
-      await userPointTable.insertOrUpdate(userId, 10000);
+      await setupUserPoint(userId, 10000);
 
       // when: 포인트를 조회하면
       const result = await controller.point(userId);
@@ -55,7 +74,7 @@ describe('Point Integration Tests', () => {
     it('거래 내역이 있는 사용자의 내역을 정상 조회한다', async () => {
       // given: 충전과 사용 내역이 있는 사용자
       const userId = 2;
-      await userPointTable.insertOrUpdate(userId, 10000);
+      await setupUserPoint(userId, 10000);
       await service.chargePoint(userId, 5000);
       await service.usePoint(userId, 3000);
 
@@ -86,7 +105,7 @@ describe('Point Integration Tests', () => {
     it('포인트 충전이 정상적으로 동작한다', async () => {
       // given: 0원을 가진 사용자
       const userId = 4;
-      await userPointTable.insertOrUpdate(userId, 0);
+      await setupUserPoint(userId, 0);
 
       // when: 10,000원을 충전하면
       const result = await controller.charge(userId, { amount: 10000 });
@@ -95,20 +114,20 @@ describe('Point Integration Tests', () => {
       expect(result.point).toBe(10000);
 
       // then: 실제 테이블에도 반영된다
-      const userPoint = await userPointTable.selectById(userId);
-      expect(userPoint.point).toBe(10000);
+      const finalPoint = await getFinalPoint(userId);
+      expect(finalPoint).toBe(10000);
     });
 
     it('충전 후 거래 내역이 기록된다', async () => {
       // given: 5,000원을 가진 사용자
       const userId = 5;
-      await userPointTable.insertOrUpdate(userId, 5000);
+      await setupUserPoint(userId, 5000);
 
       // when: 10,000원을 충전하면
       await controller.charge(userId, { amount: 10000 });
 
       // then: 거래 내역이 기록된다
-      const histories = await pointHistoryTable.selectAllByUserId(userId);
+      const histories = await getHistories(userId);
       expect(histories).toHaveLength(1);
       expect(histories[0].type).toBe(TransactionType.CHARGE);
       expect(histories[0].amount).toBe(10000);
@@ -149,7 +168,7 @@ describe('Point Integration Tests', () => {
     it('포인트 사용이 정상적으로 동작한다', async () => {
       // given: 15,000원을 가진 사용자
       const userId = 9;
-      await userPointTable.insertOrUpdate(userId, 15000);
+      await setupUserPoint(userId, 15000);
 
       // when: 5,000원을 사용하면
       const result = await controller.use(userId, { amount: 5000 });
@@ -158,20 +177,20 @@ describe('Point Integration Tests', () => {
       expect(result.point).toBe(10000);
 
       // then: 실제 테이블에도 반영된다
-      const userPoint = await userPointTable.selectById(userId);
-      expect(userPoint.point).toBe(10000);
+      const finalPoint = await getFinalPoint(userId);
+      expect(finalPoint).toBe(10000);
     });
 
     it('사용 후 거래 내역이 기록된다', async () => {
       // given: 20,000원을 가진 사용자
       const userId = 10;
-      await userPointTable.insertOrUpdate(userId, 20000);
+      await setupUserPoint(userId, 20000);
 
       // when: 8,000원을 사용하면
       await controller.use(userId, { amount: 8000 });
 
       // then: 거래 내역이 기록된다
-      const histories = await pointHistoryTable.selectAllByUserId(userId);
+      const histories = await getHistories(userId);
       expect(histories).toHaveLength(1);
       expect(histories[0].type).toBe(TransactionType.USE);
       expect(histories[0].amount).toBe(8000);
@@ -180,7 +199,7 @@ describe('Point Integration Tests', () => {
     it('잔액이 5,000원 미만일 때 에러가 발생한다', async () => {
       // given: 4,999원을 가진 사용자
       const userId = 11;
-      await userPointTable.insertOrUpdate(userId, 4999);
+      await setupUserPoint(userId, 4999);
 
       // when & then: 사용 시도 시 에러 발생
       await expect(controller.use(userId, { amount: 1000 })).rejects.toThrow(
@@ -191,7 +210,7 @@ describe('Point Integration Tests', () => {
     it('잔액 부족 시 에러가 발생한다', async () => {
       // given: 8,000원을 가진 사용자
       const userId = 12;
-      await userPointTable.insertOrUpdate(userId, 8000);
+      await setupUserPoint(userId, 8000);
 
       // when & then: 10,000원 사용 시도 시 에러 발생
       await expect(controller.use(userId, { amount: 10000 })).rejects.toThrow(
@@ -204,7 +223,7 @@ describe('Point Integration Tests', () => {
     it('실제 Table을 사용한 동시 충전이 정확하게 처리된다', async () => {
       // given: 10,000원을 가진 사용자
       const userId = 13;
-      await userPointTable.insertOrUpdate(userId, 10000);
+      await setupUserPoint(userId, 10000);
 
       // when: 동시에 3번 충전 (각 5,000원)
       await Promise.all([
@@ -214,11 +233,11 @@ describe('Point Integration Tests', () => {
       ]);
 
       // then: 최종 잔액이 25,000원이다
-      const finalPoint = await userPointTable.selectById(userId);
-      expect(finalPoint.point).toBe(25000);
+      const finalPoint = await getFinalPoint(userId);
+      expect(finalPoint).toBe(25000);
 
       // then: 거래 내역이 3개 기록되었다
-      const histories = await pointHistoryTable.selectAllByUserId(userId);
+      const histories = await getHistories(userId);
       expect(histories).toHaveLength(3);
       expect(histories.every((h) => h.type === TransactionType.CHARGE)).toBe(
         true,
@@ -228,7 +247,7 @@ describe('Point Integration Tests', () => {
     it('실제 Table을 사용한 동시 사용이 정확하게 처리된다', async () => {
       // given: 20,000원을 가진 사용자
       const userId = 14;
-      await userPointTable.insertOrUpdate(userId, 20000);
+      await setupUserPoint(userId, 20000);
 
       // when: 동시에 3번 사용 (각 3,000원)
       await Promise.all([
@@ -238,11 +257,11 @@ describe('Point Integration Tests', () => {
       ]);
 
       // then: 최종 잔액이 11,000원이다
-      const finalPoint = await userPointTable.selectById(userId);
-      expect(finalPoint.point).toBe(11000);
+      const finalPoint = await getFinalPoint(userId);
+      expect(finalPoint).toBe(11000);
 
       // then: 거래 내역이 3개 기록되었다
-      const histories = await pointHistoryTable.selectAllByUserId(userId);
+      const histories = await getHistories(userId);
       expect(histories).toHaveLength(3);
       expect(histories.every((h) => h.type === TransactionType.USE)).toBe(true);
     });
@@ -250,7 +269,7 @@ describe('Point Integration Tests', () => {
     it('실제 Table을 사용한 혼합 동시 요청이 정확하게 처리된다', async () => {
       // given: 10,000원을 가진 사용자
       const userId = 15;
-      await userPointTable.insertOrUpdate(userId, 10000);
+      await setupUserPoint(userId, 10000);
 
       // when: 충전 2번, 사용 1번을 동시 요청
       await Promise.all([
@@ -260,11 +279,11 @@ describe('Point Integration Tests', () => {
       ]);
 
       // then: 최종 잔액이 20,000원이다 (10,000 + 10,000 - 5,000 + 5,000)
-      const finalPoint = await userPointTable.selectById(userId);
-      expect(finalPoint.point).toBe(20000);
+      const finalPoint = await getFinalPoint(userId);
+      expect(finalPoint).toBe(20000);
 
       // then: 거래 내역이 3개 기록되었다
-      const histories = await pointHistoryTable.selectAllByUserId(userId);
+      const histories = await getHistories(userId);
       expect(histories).toHaveLength(3);
 
       // then: CHARGE 2개, USE 1개
