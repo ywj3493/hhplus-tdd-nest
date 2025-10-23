@@ -96,4 +96,62 @@ describe('PointService', () => {
       expect(userPointTable.selectById).toHaveBeenCalledWith(userId);
     });
   });
+
+  describe('getHistories', () => {
+    it('거래 내역이 있는 사용자의 내역을 정상적으로 조회한다', async () => {
+      // given: 거래 내역이 있는 사용자
+      const userId = 1;
+      const expectedHistories = [
+        {
+          id: 1,
+          userId: userId,
+          type: 0,
+          amount: 1000,
+          timeMillis: 1234567890,
+        },
+        {
+          id: 2,
+          userId: userId,
+          type: 1,
+          amount: 500,
+          timeMillis: 1234567900,
+        },
+      ];
+      pointHistoryTable.selectAllByUserId.mockResolvedValue(expectedHistories);
+
+      // when: 거래 내역을 조회하면
+      const result = await service.getHistories(userId);
+
+      // then: 해당 사용자의 거래 내역이 반환된다
+      expect(result).toEqual(expectedHistories);
+      expect(pointHistoryTable.selectAllByUserId).toHaveBeenCalledWith(userId);
+      expect(pointHistoryTable.selectAllByUserId).toHaveBeenCalledTimes(1);
+    });
+
+    it('거래 내역이 없는 사용자 조회 시 빈 배열을 반환한다', async () => {
+      // given: 거래 내역이 없는 사용자
+      const userId = 999;
+      pointHistoryTable.selectAllByUserId.mockResolvedValue([]);
+
+      // when: 거래 내역을 조회하면
+      const result = await service.getHistories(userId);
+
+      // then: 빈 배열이 반환된다
+      expect(result).toEqual([]);
+      expect(result).toHaveLength(0);
+      expect(pointHistoryTable.selectAllByUserId).toHaveBeenCalledWith(userId);
+    });
+
+    it('PointHistoryTable.selectAllByUserId가 올바른 userId로 호출된다', async () => {
+      // given: 특정 사용자 ID
+      const userId = 42;
+      pointHistoryTable.selectAllByUserId.mockResolvedValue([]);
+
+      // when: 거래 내역을 조회하면
+      await service.getHistories(userId);
+
+      // then: 올바른 userId로 테이블 메서드가 호출된다
+      expect(pointHistoryTable.selectAllByUserId).toHaveBeenCalledWith(userId);
+    });
+  });
 });
