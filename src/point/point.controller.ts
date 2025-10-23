@@ -14,13 +14,10 @@ import { PointService } from './point.service';
 export class PointController {
   constructor(private readonly pointService: PointService) {}
 
-  /**
-   * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
-   */
   @Get(':id')
   async point(@Param('id') id): Promise<UserPoint> {
     const userId = Number.parseInt(id);
-    return { id: userId, point: 0, updateMillis: Date.now() };
+    return this.pointService.getPoint(userId);
   }
 
   /**
