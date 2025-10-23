@@ -46,6 +46,34 @@ export class PointService {
   }
 
   async usePoint(userId: number, amount: number): Promise<UserPoint> {
-    return { id: userId, point: amount, updateMillis: Date.now() };
+    if (amount <= 0) {
+      throw new Error('사용 금액은 0보다 커야 합니다');
+    }
+    if (!Number.isInteger(amount)) {
+      throw new Error('사용 금액은 정수여야 합니다');
+    }
+
+    const currentPoint = await this.userPointTable.selectById(userId);
+
+    if (currentPoint.point < amount) {
+      throw new Error('잔액이 부족합니다');
+    }
+
+    const newPoint = currentPoint.point - amount;
+    const updateMillis = Date.now();
+
+    const updatedUserPoint = await this.userPointTable.insertOrUpdate(
+      userId,
+      newPoint,
+    );
+
+    await this.pointHistoryTable.insert(
+      userId,
+      amount,
+      TransactionType.USE,
+      updateMillis,
+    );
+
+    return updatedUserPoint;
   }
 }
