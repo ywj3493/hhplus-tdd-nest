@@ -1,0 +1,1 @@
+Review the documents under the ‘context’ folder to grasp the current progress, then plan the next issues accordingly.
