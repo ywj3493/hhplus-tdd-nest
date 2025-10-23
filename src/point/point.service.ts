@@ -11,8 +11,13 @@ export class PointService {
   private readonly CHARGE_UNIT = 100;
   private readonly MIN_BALANCE_FOR_USE = 5000;
 
-  // 동시성 제어를 위한 사용자별 Promise 큐
-  private readonly userLocks: Map<number, Promise<any>> = new Map();
+  /**
+   * 동시성 제어를 위한 사용자별 Promise 큐
+   * - Key: 사용자 ID
+   * - Value: 해당 사용자의 마지막 작업 Promise
+   * - 같은 사용자의 요청은 순차 처리, 다른 사용자는 병렬 처리
+   */
+  private readonly userLocks: Map<number, Promise<unknown>> = new Map();
 
   constructor(
     private readonly userPointTable: UserPointTable,
@@ -40,26 +45,44 @@ export class PointService {
   }
 
   /**
-   * 사용자별 동시성 제어를 위한 락 메커니즘
-   * Promise Queue 방식: 같은 사용자의 요청은 순차 처리, 다른 사용자는 병렬 처리
+   * 사용자별 동시성 제어를 위한 락 메커니즘 (Promise Queue 방식)
+   *
+   * 동작 원리:
+   * 1. 이전 작업(previousTask)이 있으면 그것이 완료될 때까지 대기
+   * 2. 이전 작업 완료 후 현재 작업(task) 실행
+   * 3. 작업 완료 후 메모리 정리 (finally)
+   *
+   * 장점:
+   * - 같은 사용자의 동시 요청은 순차 처리 (데이터 일관성 보장)
+   * - 다른 사용자의 요청은 병렬 처리 (성능 유지)
+   * - 외부 라이브러리 의존성 없음
+   *
+   * @param userId 사용자 ID
+   * @param task 실행할 작업
+   * @returns 작업 실행 결과
    */
   private async executeWithLock<T>(
     userId: number,
     task: () => Promise<T>,
   ): Promise<T> {
+    // 이전 작업이 없으면 즉시 실행 가능한 Promise 반환
     const previousTask = this.userLocks.get(userId) || Promise.resolve();
 
+    // 현재 작업을 이전 작업에 체이닝
     const currentTask = previousTask
       .then(() => task())
       .catch((error) => {
+        // 에러를 다시 throw하여 호출자에게 전파
         throw error;
       })
       .finally(() => {
+        // 작업 완료 후 메모리 정리 (마지막 작업인 경우에만 삭제)
         if (this.userLocks.get(userId) === currentTask) {
           this.userLocks.delete(userId);
         }
       });
 
+    // 현재 작업을 Map에 저장
     this.userLocks.set(userId, currentTask);
     return currentTask;
   }
