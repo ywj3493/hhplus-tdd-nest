@@ -15,7 +15,7 @@ export class PointService {
   }
 
   async getHistories(userId: number): Promise<PointHistory[]> {
-    return [];
+    return this.pointHistoryTable.selectAllByUserId(userId);
   }
 
   async chargePoint(userId: number, amount: number): Promise<UserPoint> {
