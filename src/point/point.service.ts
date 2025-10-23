@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserPointTable } from '../database/userpoint.table';
 import { PointHistoryTable } from '../database/pointhistory.table';
-import { UserPoint, PointHistory } from './point.model';
+import { UserPoint, PointHistory, TransactionType } from './point.model';
 
 @Injectable()
 export class PointService {
@@ -19,7 +19,36 @@ export class PointService {
   }
 
   async chargePoint(userId: number, amount: number): Promise<UserPoint> {
-    return { id: userId, point: amount, updateMillis: Date.now() };
+    // 금액 검증: 0 이하, 소수점 체크
+    if (amount <= 0) {
+      throw new Error('충전 금액은 0보다 커야 합니다');
+    }
+    if (!Number.isInteger(amount)) {
+      throw new Error('충전 금액은 정수여야 합니다');
+    }
+
+    // 현재 포인트 조회
+    const currentPoint = await this.userPointTable.selectById(userId);
+
+    // 새 포인트 계산
+    const newPoint = currentPoint.point + amount;
+    const updateMillis = Date.now();
+
+    // 포인트 업데이트
+    const updatedUserPoint = await this.userPointTable.insertOrUpdate(
+      userId,
+      newPoint,
+    );
+
+    // 거래 내역 기록
+    await this.pointHistoryTable.insert(
+      userId,
+      amount,
+      TransactionType.CHARGE,
+      updateMillis,
+    );
+
+    return updatedUserPoint;
   }
 
   async usePoint(userId: number, amount: number): Promise<UserPoint> {
