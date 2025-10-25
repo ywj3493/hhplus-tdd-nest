@@ -160,8 +160,8 @@ describe('PointService', () => {
       // given: 현재 포인트가 1000원인 사용자
       const userId = 1;
       const currentPoint = 1000;
-      const chargeAmount = 500;
-      const expectedNewPoint = 1500;
+      const chargeAmount = 5000;
+      const expectedNewPoint = 6000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -181,10 +181,10 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 500원을 충전하면
+      // when: 5000원을 충전하면
       const result = await service.chargePoint(userId, chargeAmount);
 
-      // then: 포인트가 1500원이 된다
+      // then: 포인트가 6000원이 된다
       expect(result.point).toBe(expectedNewPoint);
     });
 
@@ -320,15 +320,140 @@ describe('PointService', () => {
         service.chargePoint(userId, invalidAmount),
       ).rejects.toThrow();
     });
+
+    it('1,000원 미만 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 1,000원 미만 충전 금액
+      const userId = 8;
+      const invalidAmount = 999;
+
+      // when & then: 1,000원 미만을 충전하려고 하면 에러가 발생한다
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow('최소 충전 금액은 1,000원입니다');
+    });
+
+    it('100원 단위가 아닌 금액 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 100원 단위가 아닌 충전 금액
+      const userId = 9;
+      const invalidAmount = 1050;
+
+      // when & then: 100원 단위가 아닌 금액을 충전하려고 하면 에러가 발생한다
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow('충전 금액은 100원 단위만 가능합니다');
+    });
+
+    it('200,000원 초과 충전 시도 시 에러가 발생한다', async () => {
+      // given: 사용자와 200,000원 초과 충전 금액
+      const userId = 10;
+      const invalidAmount = 200100;
+
+      // when & then: 200,000원을 초과하여 충전하려고 하면 에러가 발생한다
+      await expect(
+        service.chargePoint(userId, invalidAmount),
+      ).rejects.toThrow('최대 충전 금액은 200,000원입니다');
+    });
+
+    it('1,000원 정확히 충전 성공한다', async () => {
+      // given: 포인트가 0원인 사용자
+      const userId = 11;
+      const chargeAmount = 1000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: 0,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: chargeAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 11,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 1,000원을 충전하면
+      const result = await service.chargePoint(userId, chargeAmount);
+
+      // then: 정상적으로 충전된다
+      expect(result.point).toBe(chargeAmount);
+    });
+
+    it('200,000원 정확히 충전 성공한다', async () => {
+      // given: 포인트가 50,000원인 사용자
+      const userId = 12;
+      const currentPoint = 50000;
+      const chargeAmount = 200000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: currentPoint + chargeAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 12,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 200,000원을 충전하면
+      const result = await service.chargePoint(userId, chargeAmount);
+
+      // then: 정상적으로 충전된다
+      expect(result.point).toBe(currentPoint + chargeAmount);
+    });
+
+    it('10,000원(100원 단위) 충전 성공한다', async () => {
+      // given: 포인트가 5,000원인 사용자
+      const userId = 13;
+      const currentPoint = 5000;
+      const chargeAmount = 10000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: currentPoint + chargeAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 13,
+        userId: userId,
+        type: 0,
+        amount: chargeAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 10,000원을 충전하면
+      const result = await service.chargePoint(userId, chargeAmount);
+
+      // then: 정상적으로 충전된다
+      expect(result.point).toBe(currentPoint + chargeAmount);
+    });
   });
 
   describe('usePoint', () => {
     it('포인트를 정상적으로 사용한다', async () => {
-      // given: 현재 포인트가 2000원인 사용자
+      // given: 현재 포인트가 10000원인 사용자
       const userId = 1;
-      const currentPoint = 2000;
-      const useAmount = 500;
-      const expectedNewPoint = 1500;
+      const currentPoint = 10000;
+      const useAmount = 2000;
+      const expectedNewPoint = 8000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -348,18 +473,18 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 500원을 사용하면
+      // when: 2000원을 사용하면
       const result = await service.usePoint(userId, useAmount);
 
-      // then: 포인트가 1500원이 된다
+      // then: 포인트가 8000원이 된다
       expect(result.point).toBe(expectedNewPoint);
     });
 
     it('사용 후 새로운 포인트가 반환된다', async () => {
-      // given: 포인트가 1000원인 사용자
+      // given: 포인트가 8000원인 사용자
       const userId = 2;
-      const currentPoint = 1000;
-      const useAmount = 300;
+      const currentPoint = 8000;
+      const useAmount = 3000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
@@ -368,7 +493,7 @@ describe('PointService', () => {
       });
       userPointTable.insertOrUpdate.mockResolvedValue({
         id: userId,
-        point: 700,
+        point: 5000,
         updateMillis: Date.now(),
       });
       pointHistoryTable.insert.mockResolvedValue({
@@ -379,13 +504,13 @@ describe('PointService', () => {
         timeMillis: Date.now(),
       });
 
-      // when: 300원을 사용하면
+      // when: 3000원을 사용하면
       const result = await service.usePoint(userId, useAmount);
 
       // then: 사용 후 포인트 정보가 반환된다
       expect(result).toMatchObject({
         id: userId,
-        point: 700,
+        point: 5000,
       });
       expect(result.updateMillis).toBeDefined();
     });
@@ -424,16 +549,16 @@ describe('PointService', () => {
     it('PointHistoryTable.insert가 USE 타입으로 호출된다', async () => {
       // given: 사용자와 사용 금액
       const userId = 4;
-      const useAmount = 800;
+      const useAmount = 2000;
 
       userPointTable.selectById.mockResolvedValue({
         id: userId,
-        point: 1500,
+        point: 7000,
         updateMillis: Date.now(),
       });
       userPointTable.insertOrUpdate.mockResolvedValue({
         id: userId,
-        point: 700,
+        point: 5000,
         updateMillis: Date.now(),
       });
       pointHistoryTable.insert.mockResolvedValue({
@@ -497,6 +622,328 @@ describe('PointService', () => {
 
       // when & then: 잔액보다 많은 금액을 사용하려고 하면 에러가 발생한다
       await expect(service.usePoint(userId, excessiveAmount)).rejects.toThrow();
+    });
+
+    it('잔액이 5,000원 미만일 때 사용 시도 시 에러가 발생한다', async () => {
+      // given: 현재 포인트가 4,999원인 사용자
+      const userId = 9;
+      const currentPoint = 4999;
+      const useAmount = 100;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+
+      // when & then: 잔액이 5,000원 미만일 때 사용하려고 하면 에러가 발생한다
+      await expect(service.usePoint(userId, useAmount)).rejects.toThrow(
+        '최소 5,000원 이상 있어야 사용할 수 있습니다',
+      );
+    });
+
+    it('잔액이 정확히 5,000원일 때 일부 사용 가능하다', async () => {
+      // given: 현재 포인트가 정확히 5,000원인 사용자
+      const userId = 10;
+      const currentPoint = 5000;
+      const useAmount = 1000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: currentPoint - useAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 10,
+        userId: userId,
+        type: 1,
+        amount: useAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 1,000원을 사용하면
+      const result = await service.usePoint(userId, useAmount);
+
+      // then: 정상적으로 사용된다
+      expect(result.point).toBe(4000);
+    });
+
+    it('잔액이 5,000원 이상일 때 정상 사용된다', async () => {
+      // given: 현재 포인트가 10,000원인 사용자
+      const userId = 11;
+      const currentPoint = 10000;
+      const useAmount = 3000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: currentPoint - useAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 11,
+        userId: userId,
+        type: 1,
+        amount: useAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 3,000원을 사용하면
+      const result = await service.usePoint(userId, useAmount);
+
+      // then: 정상적으로 사용된다
+      expect(result.point).toBe(7000);
+    });
+
+    it('사용 후 잔액이 5,000원 미만이 되어도 허용된다', async () => {
+      // given: 현재 포인트가 6,000원인 사용자
+      const userId = 12;
+      const currentPoint = 6000;
+      const useAmount = 3000;
+
+      userPointTable.selectById.mockResolvedValue({
+        id: userId,
+        point: currentPoint,
+        updateMillis: Date.now(),
+      });
+      userPointTable.insertOrUpdate.mockResolvedValue({
+        id: userId,
+        point: currentPoint - useAmount,
+        updateMillis: Date.now(),
+      });
+      pointHistoryTable.insert.mockResolvedValue({
+        id: 12,
+        userId: userId,
+        type: 1,
+        amount: useAmount,
+        timeMillis: Date.now(),
+      });
+
+      // when: 3,000원을 사용하면 (사용 후 잔액 3,000원)
+      const result = await service.usePoint(userId, useAmount);
+
+      // then: 정상적으로 사용된다 (사용 전 체크만 하므로)
+      expect(result.point).toBe(3000);
+    });
+  });
+
+  describe('동시성 제어 (Concurrency Control)', () => {
+    describe('동시 충전 테스트', () => {
+      it('동일 사용자가 동시에 3번 충전 시 모든 충전이 순차적으로 처리된다', async () => {
+        // given: 초기 잔액이 10,000원인 사용자
+        const userId = 100;
+        const initialBalance = 10000;
+
+        let currentBalance = initialBalance;
+        userPointTable.selectById.mockImplementation(async () => {
+          return { id: userId, point: currentBalance, updateMillis: Date.now() };
+        });
+
+        userPointTable.insertOrUpdate.mockImplementation(async (id, newPoint) => {
+          currentBalance = newPoint;
+          return { id, point: newPoint, updateMillis: Date.now() };
+        });
+
+        pointHistoryTable.insert.mockResolvedValue({
+          id: 1,
+          userId: userId,
+          type: 0,
+          amount: 5000,
+          timeMillis: Date.now(),
+        });
+
+        // when: 동시에 3번 충전 (각 5,000원)
+        const chargeAmount = 5000;
+        await Promise.all([
+          service.chargePoint(userId, chargeAmount),
+          service.chargePoint(userId, chargeAmount),
+          service.chargePoint(userId, chargeAmount),
+        ]);
+
+        // then: 최종 잔액이 정확함 (10,000 + 5,000 + 5,000 + 5,000 = 25,000)
+        expect(currentBalance).toBe(25000);
+      });
+    });
+
+    describe('동시 사용 테스트', () => {
+      it('동일 사용자가 동시에 3번 사용 시 모든 사용이 순차적으로 처리된다', async () => {
+        // given: 초기 잔액이 20,000원인 사용자
+        const userId = 101;
+        const initialBalance = 20000;
+
+        let currentBalance = initialBalance;
+        userPointTable.selectById.mockImplementation(async () => {
+          return { id: userId, point: currentBalance, updateMillis: Date.now() };
+        });
+
+        userPointTable.insertOrUpdate.mockImplementation(async (id, newPoint) => {
+          currentBalance = newPoint;
+          return { id, point: newPoint, updateMillis: Date.now() };
+        });
+
+        pointHistoryTable.insert.mockResolvedValue({
+          id: 1,
+          userId: userId,
+          type: 1,
+          amount: 3000,
+          timeMillis: Date.now(),
+        });
+
+        // when: 동시에 3번 사용 (각 3,000원)
+        const useAmount = 3000;
+        await Promise.all([
+          service.usePoint(userId, useAmount),
+          service.usePoint(userId, useAmount),
+          service.usePoint(userId, useAmount),
+        ]);
+
+        // then: 최종 잔액이 정확함 (20,000 - 3,000 - 3,000 - 3,000 = 11,000)
+        expect(currentBalance).toBe(11000);
+      });
+    });
+
+    describe('혼합 동시 요청 테스트', () => {
+      it('동일 사용자가 충전과 사용을 동시에 요청 시 순차 처리된다', async () => {
+        // given: 초기 잔액이 10,000원인 사용자
+        const userId = 102;
+        const initialBalance = 10000;
+
+        let currentBalance = initialBalance;
+        userPointTable.selectById.mockImplementation(async () => {
+          return { id: userId, point: currentBalance, updateMillis: Date.now() };
+        });
+
+        userPointTable.insertOrUpdate.mockImplementation(async (id, newPoint) => {
+          currentBalance = newPoint;
+          return { id, point: newPoint, updateMillis: Date.now() };
+        });
+
+        pointHistoryTable.insert.mockResolvedValue({
+          id: 1,
+          userId: userId,
+          type: 0,
+          amount: 5000,
+          timeMillis: Date.now(),
+        });
+
+        // when: 충전 2번(각 5,000원)과 사용 1번(3,000원)을 동시에 요청
+        await Promise.all([
+          service.chargePoint(userId, 5000),
+          service.usePoint(userId, 3000),
+          service.chargePoint(userId, 5000),
+        ]);
+
+        // then: 최종 잔액이 정확함 (10,000 + 5,000 - 3,000 + 5,000 = 17,000)
+        expect(currentBalance).toBe(17000);
+      });
+    });
+
+    describe('다른 사용자 동시 요청', () => {
+      it('서로 다른 사용자의 요청은 독립적으로 처리된다', async () => {
+        // given: 두 사용자의 초기 잔액
+        const user1Id = 103;
+        const user2Id = 104;
+        let balance1 = 10000;
+        let balance2 = 10000;
+
+        userPointTable.selectById.mockImplementation(async (id) => {
+          if (id === user1Id) {
+            return { id, point: balance1, updateMillis: Date.now() };
+          } else {
+            return { id, point: balance2, updateMillis: Date.now() };
+          }
+        });
+
+        userPointTable.insertOrUpdate.mockImplementation(async (id, newPoint) => {
+          if (id === user1Id) {
+            balance1 = newPoint;
+          } else {
+            balance2 = newPoint;
+          }
+          return { id, point: newPoint, updateMillis: Date.now() };
+        });
+
+        pointHistoryTable.insert.mockResolvedValue({
+          id: 1,
+          userId: user1Id,
+          type: 0,
+          amount: 5000,
+          timeMillis: Date.now(),
+        });
+
+        // when: 서로 다른 사용자가 동시에 작업 수행
+        await Promise.all([
+          service.chargePoint(user1Id, 5000),
+          service.chargePoint(user2Id, 5000),
+        ]);
+
+        // then: 각 사용자의 최종 잔액이 정확함
+        expect(balance1).toBe(15000);
+        expect(balance2).toBe(15000);
+      });
+    });
+
+    describe('동시 요청 시 거래 내역 기록', () => {
+      it('동시 요청 시 모든 거래 내역이 정확하게 기록된다', async () => {
+        // given: 초기 잔액이 15,000원인 사용자
+        const userId = 105;
+        const initialBalance = 15000;
+
+        let currentBalance = initialBalance;
+        userPointTable.selectById.mockImplementation(async () => {
+          return { id: userId, point: currentBalance, updateMillis: Date.now() };
+        });
+
+        userPointTable.insertOrUpdate.mockImplementation(async (id, newPoint) => {
+          currentBalance = newPoint;
+          return { id, point: newPoint, updateMillis: Date.now() };
+        });
+
+        const historyRecords: Array<{ userId: number; amount: number; type: number }> = [];
+        pointHistoryTable.insert.mockImplementation(async (uid, amount, type, time) => {
+          historyRecords.push({ userId: uid, amount, type });
+          return {
+            id: historyRecords.length,
+            userId: uid,
+            type,
+            amount,
+            timeMillis: time,
+          };
+        });
+
+        // when: 여러 작업을 동시에 수행 (충전 2번, 사용 1번)
+        await Promise.all([
+          service.chargePoint(userId, 10000),
+          service.usePoint(userId, 5000),
+          service.chargePoint(userId, 5000),
+        ]);
+
+        // then: 최종 잔액이 정확함
+        expect(currentBalance).toBe(25000); // 15,000 + 10,000 - 5,000 + 5,000
+
+        // then: 거래 내역이 3개 기록됨
+        expect(historyRecords).toHaveLength(3);
+
+        // then: 거래 내역의 금액 합계가 정확함
+        const totalCharge = historyRecords
+          .filter((h) => h.type === 0)
+          .reduce((sum, h) => sum + h.amount, 0);
+        const totalUse = historyRecords
+          .filter((h) => h.type === 1)
+          .reduce((sum, h) => sum + h.amount, 0);
+
+        expect(totalCharge).toBe(15000); // 10,000 + 5,000
+        expect(totalUse).toBe(5000);
+      });
     });
   });
 });
